@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'carrinho',
     'pedido',
     'widget_tweaks',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
