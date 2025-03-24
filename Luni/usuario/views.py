@@ -8,6 +8,21 @@ from principal.decorators import group_required
 from .models import *
 from .forms import *
 
+#importes necessarios para o serializers
+
+from rest_framework.views import APIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+
+from .serializers import (
+    UsuarioSerializer,
+    UsuarioCreateSerializer,
+    UsuarioUpdateSerializer,
+    MudarTipoUsuarioSerializer
+)
+
 def create_usuario(request):
     """
     Cria um novo usuário.
@@ -196,3 +211,83 @@ def receber_suporte_corporativo(request):
     messages.error(request, 'Você não tem permissão para acessar esta página. Para ter uma conta corporativa entre em contato com luni.support@gmail.com')
     
     return redirect('home')
+
+
+#criação do views APIs para serializers
+
+class CreateUsuarioAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = UsuarioCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EditUsuarioAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, id):
+        usuario = get_object_or_404(Usuario, pk=id)
+        
+        if not request.user.is_superuser and id != request.user.id:
+            return Response(
+                {"detail": "Você não tem permissão para editar este usuário."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = UsuarioUpdateSerializer(usuario, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RemoveUsuarioAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def delete(self, request, id):
+        usuario = get_object_or_404(Usuario, pk=id)
+        usuario.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PerfilUsuarioAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, id=None):
+        if id:
+            usuario = get_object_or_404(Usuario, pk=id)
+        else:
+            usuario = request.user if request.user.is_authenticated else None
+
+        if usuario:
+            serializer = UsuarioSerializer(usuario)
+            return Response(serializer.data)
+        return Response({"detail": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ListarUsuariosAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        usuarios = Usuario.objects.all()
+        serializer = UsuarioSerializer(usuarios, many=True)
+        return Response(serializer.data)
+
+
+class MudarTipoUsuarioAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, id):
+        usuario = get_object_or_404(Usuario, pk=id)
+        serializer = MudarTipoUsuarioSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.update(usuario, serializer.validated_data)
+            return Response(
+                {"detail": f"Tipo de usuário alterado com sucesso para {usuario.get_tipo_cliente_display()}."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
