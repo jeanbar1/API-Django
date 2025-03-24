@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
+from datetime import timedelta
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -105,6 +106,10 @@ REST_FRAMEWORK = {
     ],
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=365),  # Token de acesso durando 1 ano
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=365),  # Token de atualização durando 1 ano
+}
 
 LANGUAGE_CODE = 'pt-br'
 

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import TokenObtainPairView
 from .views import (
     CreateUsuarioAPIView,
     EditUsuarioAPIView,
@@ -29,4 +30,6 @@ urlpatterns = [
     path('usuarios/perfil/<int:id>/', PerfilUsuarioAPIView.as_view(), name='perfil-usuario-id'),
     path('usuarios/', ListarUsuariosAPIView.as_view(), name='listar-usuarios'),
     path('usuarios/mudar-tipo/<int:id>/', MudarTipoUsuarioAPIView.as_view(), name='mudar-tipo-usuario'),
+    
+
 ]

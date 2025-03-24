@@ -49,12 +49,10 @@ urlpatterns = [
     path("pedido/", include("pedido.urls"), name='pedido'),
     path("accounts/", include("django.contrib.auth.urls")),
     
+        # urls para cria o token
     
-    
-    
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Obter token JWT
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Atualizar token JWT
-]
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

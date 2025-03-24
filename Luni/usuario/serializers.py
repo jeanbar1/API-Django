@@ -2,6 +2,11 @@ from rest_framework import serializers
 from django.contrib.auth.models import Group
 from .models import Usuario
 
+#import para o token:
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+
 
 
 
@@ -105,3 +110,24 @@ class MudarTipoUsuarioSerializer(serializers.Serializer):
         instance.save()
         
         return instance
+    
+    #class para criação do token
+    
+    class TokenObtainPairSerializer(serializers.Serializer):
+        username = serializers.CharField()
+        password = serializers.CharField(write_only=True)
+        def validate(self, attrs):
+            username = attrs.get('username')
+            password = attrs.get('password')
+
+            user = authenticate(username=username, password=password)
+
+            if not user:
+                raise serializers.ValidationError("Credenciais inválidas.")
+
+            refresh = RefreshToken.for_user(user)
+
+            return {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }

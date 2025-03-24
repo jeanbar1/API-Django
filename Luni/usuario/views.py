@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from .serializers import (
     UsuarioSerializer,
@@ -22,6 +22,11 @@ from .serializers import (
     UsuarioUpdateSerializer,
     MudarTipoUsuarioSerializer
 )
+
+#import para o token
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 def create_usuario(request):
     """
@@ -231,13 +236,13 @@ class EditUsuarioAPIView(APIView):
 
     def patch(self, request, id):
         usuario = get_object_or_404(Usuario, pk=id)
-        
-        if not request.user.is_superuser and id != request.user.id:
+
+        if not request.user.is_superuser and int(id) != request.user.id:
             return Response(
                 {"detail": "Você não tem permissão para editar este usuário."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = UsuarioUpdateSerializer(usuario, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -246,31 +251,38 @@ class EditUsuarioAPIView(APIView):
 
 
 class RemoveUsuarioAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # Apenas usuários autenticados podem deletar contas
 
     def delete(self, request, id):
         usuario = get_object_or_404(Usuario, pk=id)
+
+        if not request.user.is_superuser and usuario.id != request.user.id:
+            return Response(
+                {"detail": "Você não tem permissão para excluir este usuário."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         usuario.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PerfilUsuarioAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedOrReadOnly]  # Usuários autenticados podem ver perfis, outros podem ver públicos
 
     def get(self, request, id=None):
         if id:
             usuario = get_object_or_404(Usuario, pk=id)
+        elif request.user.is_authenticated:
+            usuario = request.user
         else:
-            usuario = request.user if request.user.is_authenticated else None
+            return Response({"detail": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
-        if usuario:
-            serializer = UsuarioSerializer(usuario)
-            return Response(serializer.data)
-        return Response({"detail": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UsuarioSerializer(usuario)
+        return Response(serializer.data)
 
 
 class ListarUsuariosAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedOrReadOnly]  # Apenas usuários autenticados podem listar
 
     def get(self, request):
         usuarios = Usuario.objects.all()
@@ -279,15 +291,30 @@ class ListarUsuariosAPIView(APIView):
 
 
 class MudarTipoUsuarioAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # Apenas usuários autenticados podem mudar o tipo de usuário
 
     def post(self, request, id):
         usuario = get_object_or_404(Usuario, pk=id)
-        serializer = MudarTipoUsuarioSerializer(data=request.data)
+
+        if not request.user.is_superuser:
+            return Response(
+                {"detail": "Você não tem permissão para alterar o tipo de usuário."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = MudarTipoUsuarioSerializer(usuario, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.update(usuario, serializer.validated_data)
+            serializer.save()
             return Response(
                 {"detail": f"Tipo de usuário alterado com sucesso para {usuario.get_tipo_cliente_display()}."},
                 status=status.HTTP_200_OK
             )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    #tokenVIEW
+class TokenObtainPairView(APIView):
+    def post(self, request):
+        serializer = TokenObtainPairSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
