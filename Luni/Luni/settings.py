@@ -93,16 +93,18 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
+    # Usando as classes padrão de autenticação do Django e o JWT
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',  # Autenticação com Token
+        'rest_framework.authentication.SessionAuthentication',  # Autenticação com Sessão
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Autenticação com JWT
     ],
+    # Definindo permissões
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ]
+        'rest_framework.permissions.IsAuthenticated',  # Requer que o usuário esteja autenticado
+    ],
 }
+
 
 LANGUAGE_CODE = 'pt-br'
 

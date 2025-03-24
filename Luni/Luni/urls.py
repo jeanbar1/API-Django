@@ -3,7 +3,7 @@ from django.shortcuts import redirect, render
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 def error_handler(request, exception=None, status_code=None):
 
@@ -48,6 +48,12 @@ urlpatterns = [
     path("carrinho/", include("carrinho.urls"), name='carrinho'),
     path("pedido/", include("pedido.urls"), name='pedido'),
     path("accounts/", include("django.contrib.auth.urls")),
+    
+    
+    
+    
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Obter token JWT
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Atualizar token JWT
 ]
 
 if settings.DEBUG:

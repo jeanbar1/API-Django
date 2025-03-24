@@ -10,6 +10,15 @@ from .models import *
 from .forms import *
 
 
+#imports do view API
+
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import CategoriaProduto, Tamanho, Produto
+from .serializers import CategoriaProdutoSerializer, TamanhoSerializer, ProdutoSerializer
+
+
 @login_required
 def detalhes_produto(request, id):
     """
@@ -336,3 +345,151 @@ def remover_do_carrinho(request, id):
         item_carrinho.delete()
 
     return redirect('carrinho')
+
+
+
+# criação do view api
+
+
+class CategoriaProdutoListCreateView(generics.ListCreateAPIView):
+    """
+    Lista todas as categorias de produtos ou cria uma nova categoria.
+    """
+    queryset = CategoriaProduto.objects.all()
+    serializer_class = CategoriaProdutoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class CategoriaProdutoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Recupera, atualiza ou deleta uma categoria de produto específica.
+    """
+    queryset = CategoriaProduto.objects.all()
+    serializer_class = CategoriaProdutoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+# Views para Tamanho
+class TamanhoListCreateView(generics.ListCreateAPIView):
+    """
+    Lista todos os tamanhos ou cria um novo tamanho.
+    """
+    queryset = Tamanho.objects.all()
+    serializer_class = TamanhoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class TamanhoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Recupera, atualiza ou deleta um tamanho específico.
+    """
+    queryset = Tamanho.objects.all()
+    serializer_class = TamanhoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+# Views para Produto
+class ProdutoListCreateView(generics.ListCreateAPIView):
+    """
+    Lista todos os produtos ou cria um novo produto.
+    """
+    queryset = Produto.objects.all()
+    serializer_class = ProdutoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class ProdutoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Recupera, atualiza ou deleta um produto específico.
+    """
+    queryset = Produto.objects.all()
+    serializer_class = ProdutoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+# Views customizadas para funcionalidades específicas
+class PesquisarProdutosView(APIView):
+    """
+    Pesquisa produtos com base em filtros (nome, categoria, preço, tamanho, etc.).
+    """
+    def get(self, request):
+        produtos = Produto.objects.all()
+
+        # Filtros
+        pesquisa = request.query_params.get('pesquisa', '').strip()
+        categoria_id = request.query_params.get('categoria')
+        preco_min = request.query_params.get('preco_min')
+        preco_max = request.query_params.get('preco_max')
+        tamanho_id = request.query_params.get('tamanho')
+        sort = request.query_params.get('sort', '')
+
+        if sort == 'preco_asc':
+            produtos = produtos.order_by('preco')
+        elif sort == 'preco_desc':
+            produtos = produtos.order_by('-preco')
+
+        if pesquisa:
+            produtos = produtos.filter(Q(nome__icontains=pesquisa) | Q(descricao__icontains=pesquisa))
+
+        if categoria_id:
+            produtos = produtos.filter(categorias__id=categoria_id)
+
+        if preco_min:
+            produtos = produtos.filter(preco__gte=preco_min)
+
+        if preco_max:
+            produtos = produtos.filter(preco__lte=preco_max)
+
+        if tamanho_id:
+            produtos = produtos.filter(tamanho__id=tamanho_id)
+
+        serializer = ProdutoSerializer(produtos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class AdicionarAoCarrinhoView(APIView):
+    """
+    Adiciona um produto ao carrinho do usuário.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, id):
+        produto = get_object_or_404(Produto, id=id)
+        usuario = request.user
+        carrinho, created = Carrinho.objects.get_or_create(usuario=usuario)
+
+        quantidade = int(request.data.get('quantidade', 1))
+        estampa_id = request.data.get('estampa')
+        tamanho_id = request.data.get('tamanho')
+
+        estampa = None
+        tamanho = None
+
+        if estampa_id is not None:
+            estampa = get_object_or_404(Estampa, id=estampa_id)
+
+        if tamanho_id is not None:
+            tamanho = get_object_or_404(Tamanho, id=tamanho_id)
+
+        item, created = ItemCarrinho.objects.get_or_create(
+            carrinho=carrinho,
+            produto=produto,
+            estampa=estampa,
+            tamanho=tamanho,
+            defaults={'quantidade': quantidade}
+        )
+
+        if not created:
+            item.quantidade += quantidade
+            item.save()
+
+        return Response({"message": "Produto adicionado ao carrinho."}, status=status.HTTP_200_OK)
+
+class RemoverDoCarrinhoView(APIView):
+    """
+    Remove um produto do carrinho do usuário.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, id):
+        produto = get_object_or_404(Produto, id=id)
+        usuario = request.user
+        carrinho = get_object_or_404(Carrinho, usuario=usuario)
+
+        item_carrinho = get_object_or_404(ItemCarrinho, carrinho=carrinho, produto=produto)
+        item_carrinho.delete()
+
+        return Response({"message": "Produto removido do carrinho."}, status=status.HTTP_204_NO_CONTENT)
