@@ -7,9 +7,7 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
         model = ItemPedido
         fields = '__all__'
 
-class PedidoSerializer(serializers.ModelSerializer):
-    itens = ItemPedidoSerializer(many=True, read_only=True)
-     
+class PedidoSerializer(serializers.ModelSerializer):     
     class Meta:
         model = Pedido
         fields = '__all__'
