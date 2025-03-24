@@ -139,3 +139,17 @@ def confirmar_compra(request):
         }
         
         return render(request, 'produto/confirmacao_compra.html', context)
+
+
+# api views
+from .models import Carrinho, ItemCarrinho
+from .serializers import ItemCarrinhoSerializer, CarrinhoSerializer
+from rest_framework import viewsets
+
+class ItemCarrinhoViewSet(viewsets.ModelViewSet):
+    queryset = ItemCarrinho.objects.all()
+    serializer_class = ItemCarrinhoSerializer
+
+class CarrinhoViewSet(viewsets.ModelViewSet):
+    queryset = Carrinho.objects.all()
+    serializer_class = CarrinhoSerializer
